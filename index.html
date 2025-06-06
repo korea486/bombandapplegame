@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>사과 폭탄 게임</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #87CEEB; /* 하늘색 */
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 24px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">점수: 0</div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let player = { x: 180, y: 550, width: 40, height: 40 };
+    let apples = [];
+    let bombs = [];
+    let score = 0;
+    let gameOver = false;
+    let bombSpawnRate = 1000;
+    let lastBombSpawn = Date.now();
+
+    const appleImg = new Image();
+    appleImg.src = "https://cdn-icons-png.flaticon.com/512/415/415733.png"; // 사과 이미지
+
+    const bombImg = new Image();
+    bombImg.src = "https://cdn-icons-png.flaticon.com/512/564/564619.png"; // 폭탄 이미지
+
+    const bombSound = new Audio("https://www.soundjay.com/button/sounds/button-10.mp3");
+
+    function drawPlayer() {
+      ctx.fillStyle = "red";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function drawApple(apple) {
+      ctx.drawImage(appleImg, apple.x, apple.y, 30, 30);
+    }
+
+    function drawBomb(bomb) {
+      ctx.drawImage(bombImg, bomb.x, bomb.y, 30, 30);
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 플레이어 이동
+      drawPlayer();
+
+      // 사과 업데이트
+      apples.forEach((apple, i) => {
+        apple.y += 3;
+        drawApple(apple);
+        if (
+          apple.y + 30 > player.y &&
+          apple.x < player.x + player.width &&
+          apple.x + 30 > player.x
+        ) {
+          apples.splice(i, 1);
+          score++;
+          document.getElementById("score").innerText = "점수: " + score;
+        } else if (apple.y > canvas.height) {
+          apples.splice(i, 1);
+        }
+      });
+
+      // 폭탄 업데이트
+      bombs.forEach((bomb, i) => {
+        bomb.y += 4;
+        drawBomb(bomb);
+        if (
+          bomb.y + 30 > player.y &&
+          bomb.x < player.x + player.width &&
+          bomb.x + 30 > player.x
+        ) {
+          gameOver = true;
+          bombSound.play();
+          alert("게임 오버! 점수: " + score);
+          location.reload();
+        } else if (bomb.y > canvas.height) {
+          bombs.splice(i, 1);
+        }
+      });
+
+      // 사과 생성
+      if (Math.random() < 0.02) {
+        apples.push({ x: Math.random() * (canvas.width - 30), y: 0 });
+      }
+
+      // 폭탄 생성 (점점 빨라짐)
+      const now = Date.now();
+      if (now - lastBombSpawn > bombSpawnRate) {
+        bombs.push({ x: Math.random() * (canvas.width - 30), y: 0 });
+        lastBombSpawn = now;
+        if (bombSpawnRate > 300) bombSpawnRate -= 20; // 점점 자주 떨어짐
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") player.x -= 20;
+      if (e.key === "ArrowRight") player.x += 20;
+      if (player.x < 0) player.x = 0;
+      if (player.x > canvas.width - player.width)
+        player.x = canvas.width - player.width;
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      player.x = touch.clientX - rect.left - player.width / 2;
+      if (player.x < 0) player.x = 0;
+      if (player.x > canvas.width - player.width)
+        player.x = canvas.width - player.width;
+    });
+
+    update();
+  </script>
+</body>
+</html>
